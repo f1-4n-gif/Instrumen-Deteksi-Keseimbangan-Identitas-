@@ -1,0 +1,1 @@
+# Instrumen-Deteksi-Keseimbangan-Identitas-
