@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrumen Deteksi Keseimbangan Identitas Diri Siswa (IDKS)</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ecf0f3; /* Light gray background for Neumorphism feel */
+            min-height: 100vh;
+        }
+        .container-main {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Neumorphism Base Style */
+        .neumo-card {
+            border-radius: 20px;
+            background: #ecf0f3;
+            box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff;
+            transition: all 0.3s ease;
+        }
+        .neumo-button {
+            border-radius: 12px;
+            background: #ecf0f3;
+            box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff;
+            transition: all 0.2s ease;
+        }
+        .neumo-button:hover {
+            box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff;
+        }
+        .neumo-button:active {
+            box-shadow: inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff;
+            background: #e8ebf0;
+        }
+        .neumo-input {
+            border-radius: 10px;
+            padding: 12px;
+            background: #ecf0f3;
+            box-shadow: inset 2px 2px 5px #d1d9e6, inset -2px -2px 5px #ffffff;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        .neumo-selected {
+            box-shadow: inset 4px 4px 8px #d1d9e6, inset -4px -4px 8px #ffffff;
+            background: #3b82f6; /* Blue for selection */
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Custom styles for print media */
+        @media print {
+            body { background-color: white !important; }
+            .no-print, .neumo-button { display: none !important; }
+            .container-main { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .neumo-card, .neumo-input {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                background: white !important;
+            }
+            .text-gray-800, .text-slate-700 { color: #000 !important; }
+            .result-category { border: 1px solid #000; color: #000 !important; background-color: #eee !important; }
+            .result-suggestions { border: 1px solid #000 !important; background-color: #f5f5f5 !important; }
+        }
+
+        /* Bar Visualization styles */
+        .aspect-bar-container {
+            height: 12px;
+            border-radius: 6px;
+            background: #e0e5eb;
+            overflow: hidden;
+        }
+        .aspect-bar-fill {
+            height: 100%;
+            transition: width 1s ease-out;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Custom Alert/Message Modal --><div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="neumo-card max-w-sm w-full p-6 transform transition-all duration-300 scale-95 opacity-0" id="modal-content-box">
+            <div class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg id="modal-icon" class="h-6 w-6 mr-2 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span id="modal-title">Perhatian</span>
+            </div>
+            <p id="modal-message" class="text-slate-700 mb-6"></p>
+            <div class="text-right">
+                <button onclick="hideMessage()" class="neumo-button bg-blue-500 text-white font-medium py-2 px-6 rounded-lg transition duration-150 active:bg-blue-600 active:text-white">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-main p-4 md:p-8 pt-10">
+        <header class="text-center mb-10 no-print">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-2">
+                IDKS: Instrumen Keseimbangan Identitas Diri
+            </h1>
+            <p class="text-lg text-slate-600">Alat Deteksi Dini Sosial & Emosional Siswa untuk Guru BK</p>
+        </header>
+
+        <!-- Main Content Area --><div id="app-content" class="neumo-card p-6 md:p-10">
+            <!-- Content will be rendered here by JavaScript --></div>
+
+        <!-- GLOBAL FOOTER (INFORMASI PENGEMBANG) -->
+        <footer class="text-center mt-8 text-sm text-slate-600 no-print">
+            <p class="text-xs text-blue-500 font-medium pt-4">
+                Dikembangkan oleh: <span class="font-extrabold">ALFIAN</span> - Guru Bimbingan Konseling
+                <br>(Kab. Manokwari - Papua Barat) | E-mail: <a href="mailto:bkalfian@gmail.com" class="text-blue-700 hover:underline">bkalfian@gmail.com</a>
+            </p>
+        </footer>
+        <!-- END GLOBAL FOOTER -->
+
+    </div>
+
+    <script>
+        // --- Data Instrumen ---
+        const questions = [
+            // Aspek 1: Penerimaan Diri dan Kepercayaan Diri (3)
+            { id: 1, text: "Saya merasa nyaman dan menerima diri saya apa adanya, termasuk kekurangan saya.", aspect: "Penerimaan Diri" },
+            { id: 2, text: "Saya memiliki keyakinan pada kemampuan saya untuk berhasil dalam pelajaran atau kegiatan di sekolah.", aspect: "Penerimaan Diri" },
+            { id: 3, text: "Saya tidak terlalu cemas atau khawatir dengan pandangan negatif orang lain terhadap saya.", aspect: "Penerimaan Diri" },
+
+            // Aspek 2: Hubungan Sosial dengan Teman Sebaya (3)
+            { id: 4, text: "Saya merasa mudah untuk memulai percakapan dan menjalin pertemanan baru di sekolah.", aspect: "Hubungan Sosial" },
+            { id: 5, text: "Saya merasa diakui dan dihargai sebagai anggota kelompok teman sebaya saya.", aspect: "Hubungan Sosial" },
+            { id: 6, text: "Saya mampu menyelesaikan masalah atau perselisihan dengan teman tanpa melibatkan emosi berlebihan.", aspect: "Hubungan Sosial" },
+
+            // Aspek 3: Kesadaran Nilai Moral dan Etika (3)
+            { id: 7, text: "Saya selalu berusaha jujur dalam perkataan dan perbuatan, meskipun itu berisiko bagi saya.", aspect: "Kesadaran Nilai Moral" },
+            { id: 8, text: "Saya mengerti dan menghargai pentingnya aturan dan tata tertib di sekolah.", aspect: "Kesadaran Nilai Moral" },
+            { id: 9, text: "Saya peduli dan berusaha membantu teman yang sedang mengalami kesulitan.", aspect: "Kesadaran Nilai Moral" },
+
+            // Aspek 4: Pemahaman Identitas Pribadi (3)
+            { id: 10, text: "Saya punya gambaran yang cukup jelas tentang minat, bakat, dan cita-cita yang ingin saya capai.", aspect: "Identitas Pribadi" },
+            { id: 11, text: "Saya sering meluangkan waktu untuk merenungkan siapa diri saya dan apa yang benar-benar penting dalam hidup saya.", aspect: "Identitas Pribadi" },
+            { id: 12, text: "Saya merasa yakin dengan pilihan dan keputusan yang saya ambil untuk masa depan saya.", aspect: "Identitas Pribadi" },
+
+            // Aspek 5: Dukungan Lingkungan Sekolah dan Keluarga (3)
+            { id: 13, text: "Saya merasa guru dan konselor di sekolah memberikan perhatian dan dukungan yang saya butuhkan.", aspect: "Dukungan Lingkungan" },
+            { id: 14, text: "Keluarga saya (orang tua/wali) memberikan dukungan positif terhadap kegiatan dan aspirasi saya.", aspect: "Dukungan Lingkungan" },
+            { id: 15, text: "Saya memiliki setidaknya satu orang dewasa di sekolah yang bisa saya jadikan tempat curhat/berdiskusi.", aspect: "Dukungan Lingkungan" },
+        ];
+
+        const choices = [
+            { value: 1, label: "STS (Sangat Tidak Setuju)" },
+            { value: 2, label: "TS (Tidak Setuju)" },
+            { value: 3, label: "N (Netral)" },
+            { value: 4, label: "S (Setuju)" },
+            { value: 5, label: "SS (Sangat Setuju)" },
+        ];
+
+        // --- State Aplikasi ---
+        let currentView = 'home';
+        let answers = {};
+        let studentInfo = {
+            name: '',
+            nis: '',
+            date: ''
+        };
+        let analysisResult = null;
+
+        const appContent = document.getElementById('app-content');
+        
+        // --- Custom Message Modal Functions (Menggantikan alert()) ---
+        function showMessage(message, type = 'warning', title = 'Perhatian') {
+            const modal = document.getElementById('custom-modal');
+            const contentBox = document.getElementById('modal-content-box');
+            const messageEl = document.getElementById('modal-message');
+            const titleEl = document.getElementById('modal-title');
+            const iconEl = document.getElementById('modal-icon');
+
+            messageEl.textContent = message;
+            titleEl.textContent = title;
+            
+            let iconHtml = '';
+            let iconClass = 'text-yellow-500';
+
+            if (type === 'error') {
+                iconClass = 'text-red-500';
+                iconHtml = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            } else { // default to warning
+                iconClass = 'text-amber-500';
+                iconHtml = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />';
+            }
+            
+            iconEl.className = `h-6 w-6 mr-2 ${iconClass}`;
+            iconEl.innerHTML = iconHtml;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                contentBox.classList.remove('scale-95', 'opacity-0');
+                contentBox.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function hideMessage() {
+            const modal = document.getElementById('custom-modal');
+            const contentBox = document.getElementById('modal-content-box');
+            
+            contentBox.classList.remove('scale-100', 'opacity-100');
+            contentBox.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); 
+        }
+
+        // --- Fungsi Utama ---
+
+        function navigate(viewName) {
+            currentView = viewName;
+            renderView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function startQuestionnaire() {
+            const nameInput = document.getElementById('student-name');
+            const nisInput = document.getElementById('student-nis');
+
+            if (!nameInput.value || !nisInput.value) {
+                showMessage('Nama Siswa dan NIS wajib diisi sebelum memulai instrumen.', 'warning');
+                return;
+            }
+
+            studentInfo.name = nameInput.value.trim();
+            studentInfo.nis = nisInput.value.trim();
+            studentInfo.date = new Date().toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            answers = {};
+            questions.forEach(q => answers[q.id] = null); 
+            navigate('form');
+        }
+
+
+        function recordAnswer(questionId, value) {
+            answers[questionId] = parseInt(value);
+            // Re-render to update the visual state of the button
+            renderView(); 
+        }
+
+        function calculateResult() {
+            const totalScore = Object.values(answers).reduce((sum, score) => sum + (score || 0), 0);
+            const maxScore = questions.length * 5;
+            
+            let category, description, suggestions, categoryColor, categoryIcon, categoryBgColor;
+            
+            // Thresholds (Max 75, Min 15)
+            // Butuh perhatian khusus: 15 - 35
+            // Perlu pendampingan lanjutan: 36 - 55
+            // Cukup stabil: 56 - 75
+            
+            if (totalScore <= 35) {
+                category = "Butuh Perhatian Khusus";
+                description = "Skor menunjukkan tingkat kebingungan identitas dan kesulitan penyesuaian yang **Tinggi**. Tindakan segera dan terstruktur sangat dibutuhkan. Fokus pada konseling individu intensif.";
+                categoryColor = "text-red-700";
+                categoryBgColor = "bg-red-200/50 border-red-500";
+                categoryIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                suggestions = [
+                    "Layanan Konseling Individu Intensif (minimal 2x/minggu) untuk eksplorasi diri dan validasi emosi.",
+                    "Komunikasi dan Keterlibatan Orang Tua/Wali, menetapkan tujuan dukungan bersama di rumah.",
+                    "Rujukan ke Ahli Profesional (Psikolog/Psikiater) jika ditemukan indikasi masalah mental yang parah.",
+                    "Penugasan mentor sebaya yang terpercaya untuk pendampingan sosial harian dan integrasi kelompok.",
+                ];
+                
+            } else if (totalScore <= 55) {
+                category = "Perlu Pendampingan Lanjutan";
+                description = "Skor menunjukkan tingkat kebingungan identitas dan kesulitan penyesuaian yang **Sedang**. Beberapa area perlu distabilkan. Dukungan BK yang terstruktur dan berkelanjutan diperlukan.";
+                categoryColor = "text-amber-700";
+                categoryBgColor = "bg-amber-200/50 border-amber-500";
+                categoryIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                suggestions = [
+                    "Layanan Konseling Kelompok (melatih keterampilan sosial) dengan tema 'Mengenal Diri dan Tujuan Hidup'.",
+                    "Penyediaan Program Edukasi Karakter dan Empati Sosial melalui kegiatan sekolah atau ekskul.",
+                    "Monitoring berkala pada capaian belajar dan perilaku sosial (kerjasama wali kelas) setiap dua minggu.",
+                    "Peningkatan kepercayaan diri melalui penugasan peran positif di sekolah.",
+                ];
+            } else { // 56 - 75
+                category = "Keseimbangan Stabil";
+                description = "Skor menunjukkan tingkat keseimbangan identitas dan penyesuaian diri yang **Baik**. Siswa memiliki penerimaan diri dan keterampilan sosial yang relatif stabil. Berikan penguatan positif.";
+                categoryColor = "text-teal-700";
+                categoryBgColor = "bg-teal-200/50 border-teal-500";
+                categoryIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                suggestions = [
+                    "Memberikan Penguatan Positif dan Apresiasi atas capaian dan perilaku baiknya secara terbuka.",
+                    "Mendorong partisipasi dalam kegiatan kepemimpinan (OSIS, klub) untuk pengembangan potensi lebih lanjut.",
+                    "Edukasi Karakter dan Pengembangan Diri untuk menjaga stabilitas dan persiapan karir/masa depan.",
+                    "Memasukkan siswa ke dalam program mentor sebaya bagi siswa yang memerlukan pendampingan (sebagai mentor).",
+                ];
+            }
+
+            analysisResult = {
+                totalScore,
+                maxScore,
+                category,
+                description,
+                suggestions,
+                categoryColor,
+                categoryBgColor,
+                categoryIcon,
+                percentage: ((totalScore / maxScore) * 100).toFixed(0),
+                detailedAspects: analyzeByAspect(maxScore)
+            };
+            navigate('result');
+        }
+        
+        /**
+         * Analisis rinci per aspek
+         */
+        function analyzeByAspect() {
+            const aspects = {};
+            
+            questions.forEach(q => {
+                if (!aspects[q.aspect]) {
+                    aspects[q.aspect] = { total: 0, count: 0, max: 0 };
+                }
+                aspects[q.aspect].total += (answers[q.id] || 0);
+                aspects[q.aspect].count += 1;
+                aspects[q.aspect].max += 5; // Max score per aspect is 5 * count
+            });
+
+            const detailedAnalysis = {};
+            for (const aspectName in aspects) {
+                const data = aspects[aspectName];
+                const avgScore = data.total / data.count;
+                const percentage = (data.total / data.max) * 100;
+                let feedback = "";
+                let indicatorColor = "";
+
+                if (avgScore <= 2.5) {
+                    feedback = `Area **Kritis**. Siswa menunjukkan kerentanan/kesulitan yang nyata.`;
+                    indicatorColor = "bg-red-500";
+                } else if (avgScore <= 3.5) {
+                    feedback = `Area **Perlu Peningkatan**. Siswa perlu dorongan dan bimbingan.`;
+                    indicatorColor = "bg-amber-500";
+                } else {
+                    feedback = `Area **Kuat**. Siswa menunjukkan penyesuaian yang baik.`;
+                    indicatorColor = "bg-teal-500";
+                }
+
+                detailedAnalysis[aspectName] = {
+                    score: data.total,
+                    average: avgScore.toFixed(2),
+                    percentage: percentage.toFixed(0),
+                    feedback: feedback,
+                    indicatorColor: indicatorColor
+                };
+            }
+            return detailedAnalysis;
+        }
+
+        /**
+         * Menampilkan view yang sesuai.
+         */
+        function renderView() {
+            appContent.innerHTML = '';
+            let html = '';
+
+            if (currentView === 'home') {
+                html = renderHomeView();
+            } else if (currentView === 'form') {
+                html = renderFormView();
+            } else if (currentView === 'result') {
+                html = renderResultView();
+            }
+            
+            appContent.innerHTML = html;
+        }
+
+        const LOGO_URL = "https://i.ibb.co.com/Nn3SKv8t/cropped-Logo-Tut-Wuri-Handayani-PNG-Warna-1.png";
+
+        // --- Fungsi Render View ---
+
+        function renderHomeView() {
+            return `
+                <div class="text-center">
+                    <!-- Logo Tut Wuri Handayani --><img 
+                        src="${LOGO_URL}" 
+                        alt="Logo Tut Wuri Handayani" 
+                        class="mx-auto mb-6 w-28 h-28 object-contain transition-transform duration-500 hover:scale-110"
+                        width="112" 
+                        height="112"
+                    >
+
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Deteksi Keseimbangan Identitas Diri</h2>
+                    <p class="text-slate-600 mb-8">Masukkan data siswa untuk memulai pengisian instrumen IDKS.</p>
+                </div>
+                
+                <!-- Input Siswa --><div class="mb-10 p-6 neumo-card bg-white/50">
+                    <h3 class="text-xl font-semibold text-blue-700 mb-4 flex items-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        Data Siswa
+                    </h3>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input id="student-name" type="text" placeholder="Nama Siswa Lengkap" value="" class="neumo-input flex-1 focus:ring-blue-500 focus:border-blue-500">
+                        <input id="student-nis" type="text" placeholder="NIS/Nomor Induk Siswa" value="" class="neumo-input flex-1 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Informasi Tambahan --><div class="grid grid-cols-1 lg:grid-cols-2 gap-8 text-slate-700">
+                    <!-- Risiko dan Dampak --><div class="p-6 neumo-card border-l-4 border-red-500">
+                        <h4 class="text-xl font-bold text-red-700 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Risiko Masalah Identitas
+                        </h4>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li>Kecemasan, Depresi, dan Ketidakjelasan Tujuan.</li>
+                            <li>Konflik Sosial dan Isolasi dari Kelompok.</li>
+                            <li>Kesulitan Akademik dan Prokrastinasi Tinggi.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Kunci Dukungan --><div class="p-6 neumo-card border-l-4 border-teal-500">
+                        <h4 class="text-xl font-bold text-teal-700 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Prinsip Bimbingan & Konseling
+                        </h4>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li>**Eksplorasi Vokasional:** Bantu temukan minat karir yang realistis.</li>
+                            <li>**Pelatihan Resiliensi:** Ajarkan mekanisme koping yang sehat.</li>
+                            <li>**Penguatan Self-Esteem:** Fokus pada kelebihan dan potensi positif.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="text-center mt-12">
+                    <button onclick="startQuestionnaire()" class="neumo-button bg-blue-600 text-white font-bold py-3 px-10 text-lg rounded-full shadow-lg hover:scale-[1.02] active:scale-95">
+                        Mulai Pengisian Instrumen
+                    </button>
+                </div>
+            `;
+        }
+        
+        function renderFormView() {
+            const completedCount = Object.values(answers).filter(a => a !== null).length;
+            const totalCount = questions.length;
+            const progress = (completedCount / totalCount) * 100;
+            
+            const allAnswered = completedCount === totalCount;
+
+            // Group questions by aspect for better visual structure
+            const questionsByAspect = questions.reduce((acc, q) => {
+                acc[q.aspect] = acc[q.aspect] || [];
+                acc[q.aspect].push(q);
+                return acc;
+            }, {});
+
+            let formHtml = `
+                <div class="no-print sticky top-0 bg-ecf0f3 py-4 z-10 -m-6 md:-m-10">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Kuesioner IDKS</h2>
+                    <p class="text-slate-600 mb-4">Pilih jawaban yang paling menggambarkan kondisi diri Anda saat ini.</p>
+                    
+                    <!-- Progress Bar & Percentage -->
+                    <div class="mb-4 neumo-card p-3 flex items-center">
+                        <div class="flex-1 mr-4">
+                            <div class="w-full bg-gray-300 rounded-full h-2.5 overflow-hidden">
+                                <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%;"></div>
+                            </div>
+                        </div>
+                        <div class="text-lg font-extrabold ${progress >= 100 ? 'text-teal-600' : 'text-blue-600'}">
+                            ${progress.toFixed(0)}% Selesai
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="questionnaire-form" class="space-y-8 mt-6">
+            `;
+
+            // Render questions grouped by aspect
+            for (const aspect in questionsByAspect) {
+                formHtml += `
+                    <div class="neumo-card p-6">
+                        <h3 class="text-xl font-bold text-blue-700 mb-4 border-b-2 border-blue-200 pb-2">${aspect}</h3>
+                        <div class="space-y-4">
+                `;
+                questionsByAspect[aspect].forEach(q => {
+                    const isAnswered = answers[q.id] !== null;
+                    const questionBoxClass = isAnswered ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-300';
+
+                    formHtml += `
+                        <div class="p-4 rounded-lg bg-gray-100/50 ${questionBoxClass} transition duration-150">
+                            <div class="text-md font-semibold text-gray-800 mb-3">
+                                <span class="text-blue-600 font-extrabold mr-2">${q.id}.</span> ${q.text}
+                            </div>
+                            <div class="flex flex-wrap gap-2 md:gap-3 justify-between">
+                    `;
+
+                    choices.forEach(c => {
+                        const isSelected = answers[q.id] === c.value;
+                        const selectedClass = isSelected 
+                            ? 'neumo-selected' 
+                            : 'neumo-button hover:bg-gray-100';
+                        
+                        formHtml += `
+                            <label class="flex-1 min-w-[120px] md:min-w-0">
+                                <input 
+                                    type="radio" 
+                                    name="q${q.id}" 
+                                    value="${c.value}" 
+                                    onchange="recordAnswer(${q.id}, this.value)" 
+                                    class="hidden" 
+                                    ${isSelected ? 'checked' : ''}
+                                />
+                                <div class="cursor-pointer p-2 text-center rounded-xl transition duration-200 text-sm ${selectedClass}">
+                                    ${c.label.split('(')[0].trim()}
+                                </div>
+                            </label>
+                        `;
+                    });
+
+                    formHtml += `
+                            </div>
+                        </div>
+                    `;
+                });
+                formHtml += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            formHtml += `
+                </form>
+                
+                <div class="mt-10 text-center no-print">
+                    <button 
+                        onclick="${allAnswered ? 'calculateResult()' : 'showMessage(\'Harap jawab semua pertanyaan (' + completedCount + '/' + totalCount + ') sebelum melanjutkan.\', \'warning\')'}" 
+                        class="neumo-button font-bold py-3 px-12 text-lg rounded-full transition duration-300 
+                        ${allAnswered 
+                            ? 'bg-teal-600 text-white hover:scale-105 active:scale-95 active:bg-teal-700' 
+                            : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        }"
+                        ${allAnswered ? '' : 'disabled'}
+                    >
+                        ${allAnswered ? 'Lihat Hasil Analisis' : 'Selesaikan Kuesioner'}
+                    </button>
+                    <button onclick="navigate('home')" class="ml-4 text-sm text-gray-600 hover:text-blue-800 p-2 neumo-button">
+                        Kembali
+                    </button>
+                </div>
+            `;
+            return formHtml;
+        }
+
+        function renderResultView() {
+            if (!analysisResult) return `<p class="text-red-500">Hasil tidak ditemukan. Silakan ulangi instrumen.</p>`;
+            
+            const { totalScore, maxScore, category, description, suggestions, categoryColor, categoryBgColor, categoryIcon, percentage, detailedAspects } = analysisResult;
+            
+            let aspectDetailHtml = '';
+            for (const aspect in detailedAspects) {
+                const detail = detailedAspects[aspect];
+                aspectDetailHtml += `
+                    <div class="p-4 neumo-card border-l-4 ${detail.indicatorColor.replace('bg-', 'border-')}">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="font-bold text-gray-800 text-base">${aspect}</div>
+                            <span class="text-sm font-extrabold text-blue-600">${detail.percentage}%</span>
+                        </div>
+                        
+                        <!-- Visual Bar -->
+                        <div class="aspect-bar-container">
+                            <div class="aspect-bar-fill ${detail.indicatorColor}" style="width: ${detail.percentage}%;"></div>
+                        </div>
+                        
+                        <p class="text-xs text-slate-600 mt-2">${detail.feedback} (Rata-rata: ${detail.average})</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="print-area p-4 md:p-8">
+                    <!-- Header Laporan -->
+                    <div class="flex justify-between items-start mb-8 border-b pb-4">
+                        <img 
+                            src="${LOGO_URL}" 
+                            alt="Logo Tut Wuri Handayani" 
+                            class="h-20 w-auto object-contain" 
+                            width="80" 
+                            height="80"
+                        >
+                        <div class="text-right">
+                            <h2 class="text-3xl font-extrabold text-gray-800 mb-1">LAPORAN ANALISIS IDKS</h2>
+                            <p class="text-base text-slate-600">Siswa: <span class="font-bold text-gray-800">${studentInfo.name}</span> | NIS: ${studentInfo.nis}</p>
+                            <p class="text-sm text-slate-500">Tanggal: ${studentInfo.date}</p>
+                        </div>
+                    </div>
+
+                    <!-- Ringkasan Kategori Utama --><div class="mb-10 p-6 neumo-card result-category ${categoryBgColor} border-l-8 flex items-start gap-4">
+                        ${categoryIcon}
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold opacity-90 ${categoryColor}">KATEGORI HASIL DETEKSI:</p>
+                            <h3 class="text-4xl font-extrabold mb-3 ${categoryColor}">${category.toUpperCase()}</h3>
+                            <p class="mt-2 text-base text-gray-700">${description}</p>
+                        </div>
+                        <div class="text-right min-w-[120px]">
+                            <p class="text-sm font-semibold text-gray-700">Skor Total:</p>
+                            <div class="text-5xl font-extrabold ${categoryColor}">${totalScore}</div>
+                            <p class="text-sm text-slate-500">(${percentage}% dari ${maxScore})</p>
+                        </div>
+                    </div>
+
+                    <!-- Analisis Detil Per Aspek (Visualisasi) --><div class="mb-10">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 3a1 1 0 011-1h2a1 1 0 011 1v13a1 1 0 01-1 1h-2a1 1 0 01-1-1V3z" />
+                            </svg>
+                            Kekuatan dan Kelemahan Aspek Identitas Diri
+                        </h3>
+                        <div class="space-y-4">
+                            ${aspectDetailHtml}
+                        </div>
+                    </div>
+                    
+                    <!-- Saran Tindak Lanjut (Call to Action for BK Teacher) --><div class="p-6 neumo-card result-suggestions border-4 border-dashed border-blue-400 bg-blue-100/50">
+                        <h3 class="text-2xl font-extrabold text-blue-800 mb-5 flex items-center">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-9a1 1 0 000 2h4a1 1 0 100-2H3zm7 0a1 1 0 000 2h4a1 1 0 100-2h-4z" clip-rule="evenodd" />
+                            </svg>
+                            TINDAK LANJUT STRATEGIS GURU BK
+                        </h3>
+                        <ul class="list-none space-y-4 text-slate-800">
+                            ${suggestions.map((s, index) => `
+                                <li class="flex items-start p-3 bg-white neumo-button">
+                                    <div class="font-extrabold text-white bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">${index + 1}</div>
+                                    <p class="flex-1 text-base">${s}</p>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <!-- Developer Credit for Print/Result View (DIPERTAHANKAN UNTUK CETAK) -->
+                    <div class="mt-12 pt-4 border-t border-gray-300 text-center text-xs text-slate-600">
+                        <p class="font-bold mb-1">Instrumen Deteksi Keseimbangan Identitas Diri Siswa (IDKS)</p>
+                        <p>Dikembangkan oleh: ALFIAN - Guru Bimbingan Konseling</p>
+                        <p>(Kab. Manokwari - Papua Barat) | E-mail: bkalfian@gmail.com</p>
+                    </div>
+                </div>
+
+                <!-- Tombol Aksi (Hanya muncul di web) --><div class="mt-10 text-center no-print flex justify-center gap-4">
+                    <button onclick="window.print()" class="neumo-button bg-indigo-600 text-white font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6m-4-2v-4m-4-4h.01" />
+                        </svg>
+                        Cetak Laporan Resmi
+                    </button>
+                    <button onclick="navigate('home')" class="neumo-button text-gray-600 font-bold py-3 px-8 rounded-full transition duration-300 transform hover:scale-105">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a2 2 0 012 2v2a2 2 0 01-2 2H3m14-10l-4 4m0 0l4 4" />
+                        </svg>
+                        Ulangi Instrumen
+                    </button>
+                </div>
+            `;
+        }
+        
+        // --- Inisialisasi Aplikasi ---
+        window.onload = function() {
+            renderView();
+        };
+
+    </script>
+</body>
+</html>
